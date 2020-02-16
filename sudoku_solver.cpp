@@ -2,29 +2,17 @@
 #include <stdio.h>
 #include <iostream>
 #include <strstream>
-#include <array>
 #include <vector>
 #include <fstream>
 
 struct sudoku_sheet
 {
-    typedef std::array<int, 9> row;
+    typedef std::vector<int> row;
 
-    sudoku_sheet() = default;
-    sudoku_sheet(row r0, row r1, row r2, row r3, row r4, row r5, row r6, row r7, row r8)
-    {
-        cells[0] = r0;
-        cells[1] = r1;
-        cells[2] = r2;
-        cells[3] = r3;
-        cells[4] = r4;
-        cells[5] = r5;
-        cells[6] = r6;
-        cells[7] = r7;
-        cells[8] = r8;
-    }
+    sudoku_sheet() : cells(9, row(9)) {}
+    sudoku_sheet(std::vector<row> in_cells) : cells(in_cells) {}
 
-    std::array<row, 9> cells;
+    std::vector<row> cells;
 
           row& operator[](int i)       { return cells[i]; }
     const row& operator[](int i) const { return cells[i]; }
