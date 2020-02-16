@@ -5,11 +5,21 @@
 #include <vector>
 #include <fstream>
 
+// default initialize with 0 so we must call set_sudoku_base() in any case
+uint SUDOKU_BASE = 0;
+uint SUDOKU_DIMENSIONS = 0;
+
+void set_sudoku_base(int base)
+{
+    SUDOKU_BASE = base;
+    SUDOKU_DIMENSIONS = base * base;
+}
+
 struct sudoku_sheet
 {
     typedef std::vector<int> row;
 
-    sudoku_sheet() : cells(9, row(9)) {}
+    sudoku_sheet() : cells(SUDOKU_DIMENSIONS, row(SUDOKU_DIMENSIONS)) {}
     sudoku_sheet(std::vector<row> in_cells) : cells(in_cells) {}
 
     std::vector<row> cells;
@@ -24,20 +34,20 @@ struct sudoku_sheet
             return false;
         
         // check row
-        for(int i = 0; i < 9; i++)
+        for(int i = 0; i < SUDOKU_DIMENSIONS; i++)
             if((*this)[y][i] == n)
                 return false;
         
         // check column
-        for(int i = 0; i < 9; i++)
+        for(int i = 0; i < SUDOKU_DIMENSIONS; i++)
             if((*this)[i][x] == n)
                 return false;
         
-        // check 9-block
-        const int base_x = x - x%3;
-        const int base_y = y - y%3;
-        for(int block_x = base_x; block_x < base_x + 3; block_x++)
-            for(int block_y = base_y; block_y < base_y + 3; block_y++)
+        // check SUDOKU_DIMENSIONS-block
+        const int base_x = x - x%SUDOKU_BASE;
+        const int base_y = y - y%SUDOKU_BASE;
+        for(int block_x = base_x; block_x < base_x + SUDOKU_BASE; block_x++)
+            for(int block_y = base_y; block_y < base_y + SUDOKU_BASE; block_y++)
                 if((*this)[block_y][block_x] == n)
                     return false;
         
@@ -47,18 +57,28 @@ struct sudoku_sheet
 
 std::ostream& operator<<(std::ostream& stream, const sudoku_sheet& sheet)
 {
-    for(int yblock = 0; yblock < 3; yblock++)
+    auto print_horizontal_line = [&]()
     {
-        stream << " -------------------------\n";
-        for(int ycol=0; ycol < 3; ycol++)
+        stream << " -";
+        for (int i = 0; i < SUDOKU_DIMENSIONS + SUDOKU_BASE; i++)
+        {
+            stream << "--";
+        }
+        stream << "\n";
+    };
+
+    for(int yblock = 0; yblock < SUDOKU_BASE; yblock++)
+    {
+        print_horizontal_line();
+        for(int ycol=0; ycol < SUDOKU_BASE; ycol++)
             {
-                auto& row = sheet.cells[yblock*3+ycol];
-                for(int xblock = 0; xblock < 3; xblock++)
+                auto& row = sheet.cells[yblock*SUDOKU_BASE+ycol];
+                for(int xblock = 0; xblock < SUDOKU_BASE; xblock++)
                 {
                     stream << " |";
-                    for(int xcol=0; xcol < 3; xcol++)
+                    for(int xcol=0; xcol < SUDOKU_BASE; xcol++)
                     {
-                        int nr = row[xblock*3+xcol];
+                        int nr = row[xblock*SUDOKU_BASE+xcol];
                         if(nr == 0)
                             stream << "  ";
                         else
@@ -69,7 +89,7 @@ std::ostream& operator<<(std::ostream& stream, const sudoku_sheet& sheet)
                 stream << " |\n";
             }
     }
-    stream << " -------------------------\n";
+    print_horizontal_line();
     return stream;
 }
 
@@ -81,15 +101,15 @@ std::ostream& operator<<(std::ostream& stream, const sudoku_sheet& sheet)
  */
 bool solve(sudoku_sheet& sheet, std::vector<sudoku_sheet>& solutions, int maxnsolutions)
 {
-    for(int x = 0; x < 9; x++)
+    for(int x = 0; x < SUDOKU_DIMENSIONS; x++)
     {
-        for(int y = 0; y < 9; y++)
+        for(int y = 0; y < SUDOKU_DIMENSIONS; y++)
         {
             if(sheet[y][x] != 0)
                 continue;
             
             bool bAtLeastOneFound = false;
-            for(int n = 1; n <= 9; n++)
+            for(int n = 1; n <= SUDOKU_DIMENSIONS; n++)
             {
                 if(sheet.available(x, y, n))
                 {
@@ -118,8 +138,12 @@ int main(int argc, char** argv)
     if(argc < 2)
     {
         std::cerr << "Missing parameter!\n"
-            "SYNTAX: \tsudoku_solver <sudoku sheet path>\n"
-            "EXAMPLE: \tsudoku_solver ./test_sheet.sudoku\n";
+            "\tSYNTAX: \tsudoku_solver <sudoku_sheet_path> [<sudoku_base>]\n"
+            "\t\t<sudoku_sheet_path> \tPath to a sudoku sheet text file. Must be formatted as 1 digit per sheet cell. No surrounding whitespace. (see example_sheets/ directory)\n"
+            "\t\t<sudoku_base> \t\t(optional) Numeric base for sudoku sheet. Classic sudoku puzzles are on base 3 (3x3 blocks of 3x3 cells).\n"
+            "\tEXAMPLE:\n"
+            "\t\tsudoku_solver ./test_sheet.sudoku\n"
+            "\t\tsudoku_solver 4 ./test_sheet.sudoku\n";
         return 1;
     }
 
@@ -131,18 +155,38 @@ int main(int argc, char** argv)
         return 2;
     }
 
+    if(argc > 2)
+    {
+        std::string sudoku_base_str = argv[2];
+        try
+        {
+            int base = std::stoi(sudoku_base_str);
+            set_sudoku_base(base);
+        }
+        catch(std::invalid_argument e)
+        {
+            std::cerr << "cannot convert argument 1 '" << sudoku_base_str << "' to an integer!\n";
+            return 4;
+        }
+    }
+    else
+    {
+        set_sudoku_base(3);
+    }
+
+
     sudoku_sheet sheet;
 
     std::string line;
     int y = 0;
     while ( std::getline (sudoku_file,line) )
     {
-        if(line.size() != 9)
+        if(line.size() != SUDOKU_DIMENSIONS)
         {
-            std::cerr << "Sudoku file '" << file_path << "', line " << y << " does not have exactly 9 columns!\n";
-            return 3;
+            std::cerr << "Sudoku file '" << file_path << "', line " << y << " does not have exactly " << SUDOKU_DIMENSIONS << " columns!\n";
+            return SUDOKU_BASE;
         }
-        for(int x = 0; x < 9; x++)
+        for(int x = 0; x < SUDOKU_DIMENSIONS; x++)
         {   
             std::string ns = line.substr(x, 1);
             int n = 0;
@@ -162,12 +206,12 @@ int main(int argc, char** argv)
             
         }
         y++;
-        if(y == 9) break;
+        if(y == SUDOKU_DIMENSIONS) break;
     }
-    if(y != 9)
+    if(y != SUDOKU_DIMENSIONS)
     {
-        std::cerr << "Sudoku file '" << file_path << "' does not have exactly 9 lines!\n";
-        return 3;
+        std::cerr << "Sudoku file '" << file_path << "' does not have exactly " << SUDOKU_DIMENSIONS << " lines!\n";
+        return SUDOKU_BASE;
     }
     sudoku_file.close();
     
