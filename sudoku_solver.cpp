@@ -134,18 +134,34 @@ bool solve(sudoku_sheet& sheet, std::vector<sudoku_sheet>& solutions, int maxnso
     return true;
 }
 
+void display_help()
+{
+    std::cout << "\tSYNTAX: \tsudoku_solver <sudoku_sheet_path> [<sudoku_base>] [<max_num_solutions>]\n"
+            "\t\t<sudoku_sheet_path> \tPath to a sudoku sheet text file. Must be formatted as 1 digit per sheet cell. No surrounding whitespace. (see example_sheets/ directory)\n"
+            "\t\t<sudoku_base> \t\t(optional) Numeric base for sudoku sheet. Classic sudoku puzzles are on base 3 (3x3 blocks of 3x3 cells).\n"
+            "\t\t<max_num_solutions> \t(optional) Maximum number of solutions that should be searched. By default all possible solutions are searched.\n"
+            "\tEXAMPLE:\n"
+            "\t\tsudoku_solver ./test_sheet.sudoku\n"
+            "\t\tsudoku_solver ./test_sheet.sudoku 4 3\n";
+}
+
 int main(int argc, char** argv)
 {
     if(argc < 2)
     {
-        std::cerr << "Missing parameter!\n"
-            "\tSYNTAX: \tsudoku_solver <sudoku_sheet_path> [<sudoku_base>]\n"
-            "\t\t<sudoku_sheet_path> \tPath to a sudoku sheet text file. Must be formatted as 1 digit per sheet cell. No surrounding whitespace. (see example_sheets/ directory)\n"
-            "\t\t<sudoku_base> \t\t(optional) Numeric base for sudoku sheet. Classic sudoku puzzles are on base 3 (3x3 blocks of 3x3 cells).\n"
-            "\tEXAMPLE:\n"
-            "\t\tsudoku_solver ./test_sheet.sudoku\n"
-            "\t\tsudoku_solver 4 ./test_sheet.sudoku\n";
+        std::cerr << "Missing parameter!\n";
+        display_help();
         return 1;
+    }
+
+    for(int i = 0; i < argc; i++)
+    {
+        std::string arg = argv[i];
+        if(arg == "-h")
+        {
+            display_help();
+            return 0;
+        }
     }
 
     std::string file_path = argv[1];
@@ -175,6 +191,21 @@ int main(int argc, char** argv)
         set_sudoku_base(3);
     }
 
+    int maxnsolutions = 0;
+    if(argc > 3)
+    {
+        std::string maxnsolutions_str = argv[3];
+        try
+        {
+            maxnsolutions = std::stoi(maxnsolutions_str);
+        }
+        catch(std::invalid_argument e)
+        {
+            std::cerr << "cannot determine the maximum number of solutions from argument 2, because '" << maxnsolutions_str << "' cannot be parsed to an integer!\n";
+            return 4;
+        }
+    }
+
 
     sudoku_sheet sheet;
 
@@ -199,7 +230,7 @@ int main(int argc, char** argv)
                 }
                 catch(std::invalid_argument e)
                 {
-                    std::cerr << "cannot convert '" << line[x] << "' (line " << y << ", col " << x << ") to an integer!\n";
+                    std::cerr << "Cannot convert '" << line[x] << "' (line " << y << ", col " << x << ") to an integer!\n";
                     return 4;
                 }
             }
@@ -218,7 +249,6 @@ int main(int argc, char** argv)
     
     std::cout << "pre-solve:\n";
     std::cout << sheet;
-    int maxnsolutions = 0;
     std::vector<sudoku_sheet> solutions;
     if(solve(sheet, solutions, maxnsolutions))
     {
