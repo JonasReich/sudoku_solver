@@ -4,6 +4,7 @@
 #include <strstream>
 #include <array>
 #include <vector>
+#include <fstream>
 
 struct sudoku_sheet
 {
@@ -99,6 +100,7 @@ bool solve(sudoku_sheet& sheet, std::vector<sudoku_sheet>& solutions, int maxnso
             if(sheet[y][x] != 0)
                 continue;
             
+            bool bAtLeastOneFound = false;
             for(int n = 1; n <= 9; n++)
             {
                 if(sheet.available(x, y, n))
@@ -107,6 +109,7 @@ bool solve(sudoku_sheet& sheet, std::vector<sudoku_sheet>& solutions, int maxnso
                     sheet[y][x] = n;
                     if(solve(sheet, solutions, maxnsolutions))
                     {
+                        bAtLeastOneFound = true;
                         if(solutions.size() == maxnsolutions)
                             return true;
                     }
@@ -114,7 +117,7 @@ bool solve(sudoku_sheet& sheet, std::vector<sudoku_sheet>& solutions, int maxnso
                     sheet[y][x] = 0;
                 }
             }
-            return false;
+            return bAtLeastOneFound;
         }
     }
     solutions.push_back(sheet);
@@ -124,46 +127,62 @@ bool solve(sudoku_sheet& sheet, std::vector<sudoku_sheet>& solutions, int maxnso
 
 int main(int argc, char** argv)
 {
+    if(argc < 2)
+    {
+        std::cerr << "Missing parameter!\n"
+            "SYNTAX: \tsudoku_solver <sudoku sheet path>\n"
+            "EXAMPLE: \tsudoku_solver ./test_sheet.sudoku\n";
+        return 1;
+    }
+
+    std::string file_path = argv[1];
+    std::ifstream sudoku_file (file_path);
+    if (!sudoku_file.is_open())
+    {
+        std::cerr << "Unable to open file '" << file_path << "'\n";
+        return 2;
+    }
+
+    sudoku_sheet sheet;
+
+    std::string line;
+    int y = 0;
+    while ( std::getline (sudoku_file,line) )
+    {
+        if(line.size() != 9)
+        {
+            std::cerr << "Sudoku file '" << file_path << "', line " << y << " does not have exactly 9 columns!\n";
+            return 3;
+        }
+        for(int x = 0; x < 9; x++)
+        {   
+            std::string ns = line.substr(x, 1);
+            int n = 0;
+            if(ns != " ")
+            {
+                try
+                {
+                     n = std::stoi(ns);
+                }
+                catch(std::invalid_argument e)
+                {
+                    std::cerr << "cannot convert '" << line[x] << "' (line " << y << ", col " << x << ") to an integer!\n";
+                    return 4;
+                }
+            }
+            sheet[y][x] = n;
+            
+        }
+        y++;
+        if(y == 9) break;
+    }
+    if(y != 9)
+    {
+        std::cerr << "Sudoku file '" << file_path << "' does not have exactly 9 lines!\n";
+        return 3;
+    }
+    sudoku_file.close();
     
-    sudoku_sheet sheet = {
-        {1, 2, 3, 4, 5, 6, 7, 8, 9},
-        {9, 8, 7, 1, 2, 3, 4, 5, 6},
-        {4, 5, 6, 7, 8, 9, 1, 2, 3},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0}
-    };
-    
-    //sudoku_sheet sheet;
-   /*
-    sudoku_sheet sheet = {
-        {1, 2, 3, 4, 5, 6, 7, 8, 9},
-        {9, 8, 7, 1, 2, 3, 4, 5, 6},
-        {4, 5, 6, 7, 8, 9, 1, 2, 3},
-        {0, 5, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0}
-    };
-    */
-   /*
-    sudoku_sheet sheet = {
-        {1, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 2, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 3, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 4, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 5, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 6, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 7, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 8, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 9}
-    };
-    */
     std::cout << "pre-solve:\n";
     std::cout << sheet;
     int maxnsolutions = 0;
