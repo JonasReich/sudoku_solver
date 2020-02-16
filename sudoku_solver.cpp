@@ -1,3 +1,4 @@
+// Copyright (c) 2020 Jonas Reich
 
 #include <stdio.h>
 #include <iostream>
@@ -44,8 +45,8 @@ struct sudoku_sheet
                 return false;
         
         // check SUDOKU_DIMENSIONS-block
-        const int base_x = x - x%SUDOKU_BASE;
-        const int base_y = y - y%SUDOKU_BASE;
+        const int base_x = x - x % SUDOKU_BASE;
+        const int base_y = y - y % SUDOKU_BASE;
         for(int block_x = base_x; block_x < base_x + SUDOKU_BASE; block_x++)
             for(int block_y = base_y; block_y < base_y + SUDOKU_BASE; block_y++)
                 if((*this)[block_y][block_x] == n)
@@ -72,13 +73,13 @@ std::ostream& operator<<(std::ostream& stream, const sudoku_sheet& sheet)
         print_horizontal_line();
         for(int ycol=0; ycol < SUDOKU_BASE; ycol++)
             {
-                auto& row = sheet.cells[yblock*SUDOKU_BASE+ycol];
+                auto& row = sheet.cells[(yblock * SUDOKU_BASE) + ycol];
                 for(int xblock = 0; xblock < SUDOKU_BASE; xblock++)
                 {
                     stream << " |";
                     for(int xcol=0; xcol < SUDOKU_BASE; xcol++)
                     {
-                        int nr = row[xblock*SUDOKU_BASE+xcol];
+                        int nr = row[(xblock * SUDOKU_BASE) + xcol];
                         if(nr == 0)
                             stream << "  ";
                         else
