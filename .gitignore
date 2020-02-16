@@ -1,0 +1,6 @@
+
+# VSCode settings/etc directory
+.vscode/
+
+# OSX default binary output
+*.out
